@@ -1,30 +1,22 @@
 import axios from "axios";
 
-export function AddOneStatusVenta(statusVenta, idSerie) {
-  console.log("<<EJECUTA>> API <<AddOneStatusVenta>> Requiere:", statusVenta);
+export async function AddOneStatusVenta(statusVenta, idSerie, idAlmacen) {
+  const apiUrl = `${import.meta.env.VITE_REST_API_ECOMMERCE}/prod-serv/almacen/${idAlmacen}/serie/${idSerie}/estatus_venta`;
 
-  return new Promise((resolve, reject) => {
-    axios
-      .post(
-        `${import.meta.env.VITE_REST_API_ECOMMERCE}/prod-serv/negocio/serie/${idSerie}/estatus-venta`,
-        statusVenta
-      )
-      .then((response) => {
-        console.log("<<RESPONSE>> AddOneStatusVenta", response.data);
-        const data = response.data;
-        if (!data || data.error) {
-          console.error(
-            "<<ERROR>> <<NO>> se ejecutó la API <<AddOneStatusVenta>> de forma correcta",
-            data
-          );
-          reject(data);
-        } else {
-          resolve(data);
-        }
-      })
-      .catch((error) => {
-        console.error("<<ERROR>> en API <<AddOneStatusVenta>>", error);
-        reject(error);
-      });
-  });
+  console.log("Ejecutando API AddOneStatusVenta con URL:", apiUrl);
+  console.log("Datos enviados a la API:", statusVenta);
+
+  try {
+    const response = await axios.post(apiUrl, statusVenta);
+
+    if (!response.data || response.data.error) {
+      throw new Error(response.data.error || "Error desconocido en el servidor.");
+    }
+
+    console.log("Estatus de venta creado correctamente:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error en AddOneStatusVenta:", error);
+    throw error;
+  }
 }

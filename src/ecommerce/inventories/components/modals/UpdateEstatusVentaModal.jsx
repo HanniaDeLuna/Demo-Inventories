@@ -1,46 +1,40 @@
 import React, { useState } from "react";
 import {
   Dialog,
-  DialogContent,
   DialogTitle,
-  Typography,
-  TextField,
+  DialogContent,
   DialogActions,
   Box,
   Alert,
   FormControlLabel,
   Checkbox,
+  TextField,
 } from "@mui/material";
 import { LoadingButton } from "@mui/lab";
 import CloseIcon from "@mui/icons-material/Close";
 import SaveIcon from "@mui/icons-material/Save";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { AddOneStatusVenta } from "../../../remote/post/AddOneStatusVenta";
-import { EstatusVentaValues } from "../../helpers/EstatusVentaValues";
+import { putEstatusVenta } from "../../../remote/put/putEstatusVenta";
 
-const AddEstatusVentaModal = ({ show, onClose, onSave }) => {
+const UpdateEstatusVentaModal = ({ show, onClose, onSave, initialData }) => {
   const [loading, setLoading] = useState(false);
   const [alertMessage, setAlertMessage] = useState({ type: "", message: "" });
 
   const formik = useFormik({
     initialValues: {
-      idAlmacen: "", // Nuevo campo para ID Almacén
-      idSerie: "", // Nuevo campo para ID Serie
-      IdTipoEstatusOK: "",
-      Actual: false,
-      Observacion: "",
-      FechaReg: new Date().toISOString().split("T")[0], // Fecha actual por defecto
-      UsuarioReg: "UsuarioTest", // Sustituir por usuario autenticado
+      idAlmacen: initialData?.idAlmacen || "",
+      idSerie: initialData?.idSerie || "",
+      IdTipoEstatusOK: initialData?.IdTipoEstatusOK || "", // Incluido como valor inicial
+      Actual: initialData?.Actual === "S",
+      Observacion: initialData?.Observacion || "",
+      FechaReg: initialData?.FechaReg || new Date().toISOString().split("T")[0],
+      UsuarioReg: initialData?.UsuarioReg || "",
     },
     validationSchema: Yup.object({
       idAlmacen: Yup.string().required("El ID del Almacén es requerido."),
       idSerie: Yup.string().required("El ID de la Serie es requerido."),
-      IdTipoEstatusOK: Yup.string().required("El ID del Estatus es requerido."),
       Actual: Yup.boolean().required("Campo requerido."),
-      Observacion: Yup.string()
-        .max(255, "La observación no puede exceder 255 caracteres.")
-        .required("La observación es requerida."),
       FechaReg: Yup.date()
         .required("La fecha de registro es requerida.")
         .typeError("Debe ser una fecha válida."),
@@ -53,24 +47,32 @@ const AddEstatusVentaModal = ({ show, onClose, onSave }) => {
       setAlertMessage({ type: "", message: "" });
 
       try {
-        const statusData = EstatusVentaValues({
+        const statusData = {
           ...values,
           Actual: values.Actual ? "S" : "N",
-        });
+        };
 
-        await AddOneStatusVenta(statusData, values.idSerie, values.idAlmacen);
+        console.log("Datos enviados al API:", statusData);
+
+        await putEstatusVenta(
+          values.idAlmacen, 
+          values.idSerie,
+          values.IdTipoEstatusOK, 
+          statusData
+        );
 
         setAlertMessage({
           type: "success",
-          message: "Estatus creado y guardado correctamente.",
+          message: "Estatus de venta actualizado exitosamente.",
         });
 
-        onSave(statusData); // Agrega el estatus al listado en la vista principal
-        formik.resetForm(); // Reinicia el formulario
+        onSave(statusData); // Actualiza los datos en la tabla
       } catch (error) {
+        console.error("Error al actualizar estatus de venta:", error);
         setAlertMessage({
           type: "error",
-          message: error.message || "Hubo un error al intentar guardar el estatus.",
+          message:
+            error.message || "Ocurrió un error al intentar actualizar el estatus.",
         });
       } finally {
         setLoading(false);
@@ -78,34 +80,28 @@ const AddEstatusVentaModal = ({ show, onClose, onSave }) => {
     },
   });
 
-  const commonTextFieldProps = {
-    onChange: formik.handleChange,
-    onBlur: formik.handleBlur,
-    fullWidth: true,
-    margin: "dense",
-    disabled: alertMessage.type === "success",
-  };
-
   return (
-    <Dialog open={show} onClose={onClose} fullWidth maxWidth="sm">
-      <form onSubmit={formik.handleSubmit}>
-        {/* Título del Modal */}
-        <DialogTitle>
-          <Typography variant="h6">
-            <strong>Agregar Nuevo Estatus de Venta</strong>
-          </Typography>
-        </DialogTitle>
+    <Dialog open={show} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>Actualizar Estatus de Venta</DialogTitle>
+      <DialogContent>
+        <Box component="form" onSubmit={formik.handleSubmit}>
+          {/* Mensajes de éxito o error */}
+          {alertMessage.message && (
+            <Alert severity={alertMessage.type} sx={{ mb: 2 }}>
+              {alertMessage.message}
+            </Alert>
+          )}
 
-        {/* Contenido del Formulario */}
-        <DialogContent dividers>
           {/* Campo para ID Almacén */}
           <TextField
             id="idAlmacen"
             label="ID Almacén*"
             value={formik.values.idAlmacen}
-            {...commonTextFieldProps}
+            onChange={formik.handleChange}
             error={formik.touched.idAlmacen && Boolean(formik.errors.idAlmacen)}
             helperText={formik.touched.idAlmacen && formik.errors.idAlmacen}
+            fullWidth
+            margin="normal"
           />
 
           {/* Campo para ID Serie */}
@@ -113,24 +109,23 @@ const AddEstatusVentaModal = ({ show, onClose, onSave }) => {
             id="idSerie"
             label="ID Serie*"
             value={formik.values.idSerie}
-            {...commonTextFieldProps}
+            onChange={formik.handleChange}
             error={formik.touched.idSerie && Boolean(formik.errors.idSerie)}
             helperText={formik.touched.idSerie && formik.errors.idSerie}
+            fullWidth
+            margin="normal"
           />
 
-          {/* Campo para ID Estatus */}
+          {/* Campo para ID Estatus (Solo Lectura) */}
           <TextField
             id="IdTipoEstatusOK"
-            label="ID Estatus*"
+            label="ID Estatus"
             value={formik.values.IdTipoEstatusOK}
-            {...commonTextFieldProps}
-            error={
-              formik.touched.IdTipoEstatusOK &&
-              Boolean(formik.errors.IdTipoEstatusOK)
-            }
-            helperText={
-              formik.touched.IdTipoEstatusOK && formik.errors.IdTipoEstatusOK
-            }
+            InputProps={{
+              readOnly: true, // Hace el campo solo lectura
+            }}
+            fullWidth
+            margin="normal"
           />
 
           {/* Checkbox para Estatus Activo */}
@@ -152,7 +147,7 @@ const AddEstatusVentaModal = ({ show, onClose, onSave }) => {
             id="Observacion"
             label="Observación*"
             value={formik.values.Observacion}
-            {...commonTextFieldProps}
+            onChange={formik.handleChange}
             error={
               formik.touched.Observacion &&
               Boolean(formik.errors.Observacion)
@@ -160,6 +155,8 @@ const AddEstatusVentaModal = ({ show, onClose, onSave }) => {
             helperText={
               formik.touched.Observacion && formik.errors.Observacion
             }
+            fullWidth
+            margin="normal"
           />
 
           {/* Campo para Fecha de Registro */}
@@ -168,63 +165,55 @@ const AddEstatusVentaModal = ({ show, onClose, onSave }) => {
             label="Fecha de Registro*"
             type="date"
             value={formik.values.FechaReg}
-            {...commonTextFieldProps}
-            InputLabelProps={{ shrink: true }}
+            onChange={formik.handleChange}
             error={formik.touched.FechaReg && Boolean(formik.errors.FechaReg)}
             helperText={formik.touched.FechaReg && formik.errors.FechaReg}
+            fullWidth
+            margin="normal"
           />
 
           {/* Campo para Usuario de Registro */}
           <TextField
             id="UsuarioReg"
-            label="Usuario de Registro*"
+            label="Usuario Registro*"
             value={formik.values.UsuarioReg}
-            {...commonTextFieldProps}
+            onChange={formik.handleChange}
             error={
               formik.touched.UsuarioReg && Boolean(formik.errors.UsuarioReg)
             }
             helperText={
               formik.touched.UsuarioReg && formik.errors.UsuarioReg
             }
+            fullWidth
+            margin="normal"
           />
-        </DialogContent>
 
-        {/* Acciones del Modal */}
-        <DialogActions>
-          <Box m="auto">
-            {alertMessage.message && (
-              <Alert severity={alertMessage.type}>
-                <b>{alertMessage.type === "success" ? "¡ÉXITO!" : "¡ERROR!"}</b>{" "}
-                ─ {alertMessage.message}
-              </Alert>
-            )}
-          </Box>
-          <LoadingButton
-            color="secondary"
-            startIcon={<CloseIcon />}
-            variant="outlined"
-            onClick={onClose}
-            loadingPosition="start"
-          >
-            Cerrar
-          </LoadingButton>
-          <LoadingButton
-            color="primary"
-            startIcon={<SaveIcon />}
-            variant="contained"
-            type="submit"
-            loading={loading}
-            disabled={alertMessage.type === "success"}
-            loadingPosition="start"
-          >
-            Guardar
-          </LoadingButton>
-        </DialogActions>
-      </form>
+          {/* Botones de Acciones */}
+          <DialogActions>
+            <LoadingButton
+              type="submit"
+              color="primary"
+              loading={loading}
+              startIcon={<SaveIcon />}
+              variant="contained"
+              disabled={loading}
+            >
+              Guardar
+            </LoadingButton>
+            <LoadingButton
+              color="secondary"
+              onClick={onClose}
+              startIcon={<CloseIcon />}
+              variant="contained"
+              disabled={loading}
+            >
+              Cancelar
+            </LoadingButton>
+          </DialogActions>
+        </Box>
+      </DialogContent>
     </Dialog>
   );
 };
 
-export default AddEstatusVentaModal;
-
-
+export default UpdateEstatusVentaModal;

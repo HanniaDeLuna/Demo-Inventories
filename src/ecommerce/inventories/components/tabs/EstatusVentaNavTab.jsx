@@ -1,29 +1,19 @@
-import { Box, Tab, Tabs, Stack } from "@mui/material";
 import React, { useState } from "react";
+import { Box, Tab, Tabs } from "@mui/material";
+
 // Definimos las pestañas específicas para Estatus Venta
 const EstatusVentaTabs = ["ESTATUS", "DETALLES", "OBSERVACIONES"];
 
-const EstatusVentaNavTab = ({ currentRowInEstatusVentaTab, setCurrentNameTabInEstatusVentaTab }) => {
+const EstatusVentaNavTab = ({
+  currentRowInEstatusVentaTab,
+  setCurrentNameTabInEstatusVentaTab,
+}) => {
   const [currentTabIndex, setCurrentTabIndex] = useState(0);
 
-  const handleChange = (e) => {
-    const selectedTab = e.target.innerText.toUpperCase();
-    setCurrentNameTabInEstatusVentaTab(selectedTab);
-
-    switch (selectedTab) {
-      case "ESTATUS":
-        setCurrentTabIndex(0);
-        break;
-      case "DETALLES":
-        setCurrentTabIndex(1);
-        break;
-      case "OBSERVACIONES":
-        setCurrentTabIndex(2);
-        break;
-      default:
-        setCurrentTabIndex(0);
-        break;
-    }
+  const handleChange = (event, newTabIndex) => {
+    const selectedTab = EstatusVentaTabs[newTabIndex]; // Selecciona el tab actual por índice
+    setCurrentTabIndex(newTabIndex); // Actualiza el índice del tab
+    setCurrentNameTabInEstatusVentaTab(selectedTab); // Envía el nombre de la pestaña seleccionada
   };
 
   return (
@@ -31,21 +21,24 @@ const EstatusVentaNavTab = ({ currentRowInEstatusVentaTab, setCurrentNameTabInEs
       sx={{
         border: (theme) => `1px solid ${theme.palette.divider}`,
         mx: 1,
-        padding: 0.5,
+        padding: 1,
+        borderRadius: "4px",
+        backgroundColor: "#f9f9f9",
       }}
     >
       <Tabs
         value={currentTabIndex}
-        variant={"fullWidth"}
+        variant="fullWidth"
         onChange={handleChange}
-        aria-label="estatus venta tabs"
+        aria-label="Estatus Venta Tabs"
         textColor="primary"
+        indicatorColor="primary"
       >
-        {EstatusVentaTabs.map((tab) => (
+        {EstatusVentaTabs.map((tab, index) => (
           <Tab
-            key={tab}
+            key={index}
             label={tab}
-            disabled={currentRowInEstatusVentaTab === null} // Desactiva si no hay fila seleccionada
+            disabled={!currentRowInEstatusVentaTab} // Desactiva si no hay fila seleccionada
           />
         ))}
       </Tabs>
