@@ -15,9 +15,10 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import AutorenewIcon from "@mui/icons-material/Autorenew";
 import AddEstatusVentaModal from "../modals/AddEstatusVentaModal";
 import UpdateEstatusVentaModal from "../modals/UpdateEstatusVentaModal";
+import DeleteEstatusVentaModal from "../modals/DeleteEstatusVentaModal";
 import { getEstatusVenta } from "../../../remote/get/getEstatusVenta";
 import { getAllInventories } from "../../../remote/getAllInventories";
-import { deleteEstatusVenta } from "../../../remote/del/deleteEstatusVenta"; // Asegúrate de importar correctamente esta función
+import { deleteEstatusVenta } from "../../../remote/del/deleteEstatusVenta"; // Importa la función de eliminación
 
 // Columnas para la tabla
 const EstatusVentaColumns = [
@@ -54,6 +55,7 @@ const EstatusVentaTable = () => {
   const [estatusVentaData, setEstatusVentaData] = useState([]); // Datos para la tabla
   const [addStatusShowModal, setAddStatusShowModal] = useState(false); // Modal de agregar
   const [updateStatusShowModal, setUpdateStatusShowModal] = useState(false); // Modal de editar
+  const [deleteStatusShowModal, setDeleteStatusShowModal] = useState(false); // Modal de eliminar
   const [selectedRowStatus, setSelectedRowStatus] = useState(null); // Fila seleccionada
 
   // Función para obtener datos
@@ -101,21 +103,14 @@ const EstatusVentaTable = () => {
     setUpdateStatusShowModal(false); // Cierra el modal
   };
 
-  const handleDelete = async () => {
-    if (!selectedRowStatus) {
-      console.error("No hay una fila seleccionada para eliminar.");
-      return;
-    }
+  const handleDeleteClick = () => {
+    setDeleteStatusShowModal(true); // Abre el modal de confirmación de eliminación
+  };
 
-    const { idAlmacen, idSerie, IdTipoEstatusOK } = selectedRowStatus;
+  const handleDelete = async (statusToDelete) => {
+    const { idAlmacen, idSerie, IdTipoEstatusOK } = statusToDelete;
 
     try {
-      // Confirmación opcional
-      const confirm = window.confirm(
-        `¿Estás seguro de que deseas eliminar el estatus con ID: ${IdTipoEstatusOK}?`
-      );
-      if (!confirm) return;
-
       // Llamada a la API para eliminar
       await deleteEstatusVenta(idAlmacen, idSerie, IdTipoEstatusOK);
 
@@ -132,6 +127,7 @@ const EstatusVentaTable = () => {
       );
 
       console.log("Estatus eliminado exitosamente.");
+      setDeleteStatusShowModal(false); // Cierra el modal de eliminación
     } catch (error) {
       console.error("Error al eliminar el estatus:", error.message || error);
       alert("Hubo un error al eliminar el estatus. Por favor, inténtalo de nuevo.");
@@ -180,7 +176,7 @@ const EstatusVentaTable = () => {
             <Tooltip title="Eliminar">
               <IconButton
                 disabled={!selectedRowStatus} // Desactiva si no hay fila seleccionada
-                onClick={handleDelete}
+                onClick={handleDeleteClick} // Abre el modal de confirmación
               >
                 <DeleteIcon />
               </IconButton>
@@ -218,19 +214,22 @@ const EstatusVentaTable = () => {
       </Dialog>
 
       {/* Modal para editar estatus */}
-      {selectedRowStatus && (
-        <Dialog
-          open={updateStatusShowModal}
+      <Dialog open={updateStatusShowModal} onClose={() => setUpdateStatusShowModal(false)}>
+        <UpdateEstatusVentaModal
+          show={updateStatusShowModal}
           onClose={() => setUpdateStatusShowModal(false)}
-        >
-          <UpdateEstatusVentaModal
-            show={updateStatusShowModal}
-            onClose={() => setUpdateStatusShowModal(false)}
-            onSave={handleSaveUpdate}
-            initialData={selectedRowStatus}
-          />
-        </Dialog>
-      )}
+          onSave={handleSaveUpdate}
+          initialData={selectedRowStatus}
+        />
+      </Dialog>
+
+      {/* Modal de confirmación para eliminar */}
+      <DeleteEstatusVentaModal
+        show={deleteStatusShowModal}
+        onClose={() => setDeleteStatusShowModal(false)}
+        onDelete={handleDelete}
+        selectedRowStatus={selectedRowStatus}
+      />
     </Box>
   );
 };
